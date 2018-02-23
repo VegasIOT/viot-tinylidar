@@ -141,8 +141,11 @@ void setup() {
 
   Serial.begin(115200);
   Wire.begin(D1, D2); // sda, scl
+  Wire.write(0x45);  //hex for E turn off LED
+  Wire.endTransmission();
+  delay(1000);
   Wire.beginTransmission(0x10);
-  Wire.write(0x45);  
+  Wire.write(0x59);  //hex for Y save LED turned off to NVRAM
   Wire.endTransmission();
 
   pinMode(PIRPIN, INPUT);
