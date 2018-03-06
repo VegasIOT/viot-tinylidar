@@ -73,6 +73,10 @@ const int bluePin = D3;
 
 
 /**************************** SENSOR DEFINITIONS *******************************************/
+int fcount=0;
+int loops=0;
+const int number_of_loops=3;
+int Lidararray[number_of_loops];
 int counter =0;
 float ldrValue;
 int LDR;
@@ -141,6 +145,7 @@ void setup() {
 
   Serial.begin(115200);
   Wire.begin(D1, D2); // sda, scl
+  Wire.beginTransmission(0x10);
   Wire.write(0x45);  //hex for E turn off LED
   Wire.endTransmission();
   delay(1000);
@@ -365,7 +370,7 @@ void sendState() {
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
   
-  if (lidarValue < 1) {
+  if (lidarValue < 1 || counter < 3) {
     Serial.println("less than 1");}
   else
   {
@@ -472,12 +477,9 @@ void loop() {
       newLidar=lidarValue;
     int newdiff=abs(lidarValue-newLidar);
     
-    //print it out
-    //Serial.print(F("Distance (mm) = "));
-    //Serial.print("newlidar ");   
-    //Serial.println(newLidar);
-  
-    //if (checkBoundSensor(newdiff, lidarValue, diffLidar)) {
+    
+	
+	/*
     if (newdiff > diffLidar) {
       Serial.print("newdiff ");
       Serial.println (newdiff);
@@ -490,7 +492,35 @@ void loop() {
       lidarValue = newLidar;
       sendState();
     }
+	*/
+	
+	if (loops < number_of_loops-1)
+      {
+        Lidararray[loops]=newLidar;
+        loops++;
+      }
+      else
+      {
+        loops=0;
+        float Lidaravg = average(Lidararray,number_of_loops);
+        Serial.print("Average");
+        Serial.println(Lidaravg);
+        newLidar=(int)Lidaravg;
+        
+      } 
 
+        
+    if (fcount == number_of_loops){
+      lidarValue = newLidar;
+    }
+	  int newdiffLidar=abs(lidarValue-newLidar);
+
+      if (newdiffLidar > diffLidar && loops==0 && fcount > number_of_loops) {
+        
+        lidarValue = newLidar;
+        sendState();
+      }
+      fcount++;
 }
 
 
@@ -502,3 +532,10 @@ Serial.print("resetting");
 ESP.reset(); 
 }
 
+float average (int * array, int len)  // assuming array is int.
+{
+  long sum = 0L ;  // sum will be larger than an item, long for safety.
+  for (int i = 0 ; i < len ; i++)
+    sum += array [i] ;
+  return  ((float) sum) / len ;  // average will be fractional, so float may be appropriate.
+}
